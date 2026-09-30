@@ -50,7 +50,7 @@
       "col": 4,
       "type": "security",
       "label": "Critic",
-      "sublabel": "Check draft + evidence",
+      "sublabel": "Check draft + context",
       "tag": "CRITIC_MODEL"
     },
     {

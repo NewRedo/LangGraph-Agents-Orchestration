@@ -8,18 +8,9 @@ LangGraph helps you express and run that process. This article introduces the id
 
 LangGraph is a library for building stateful workflows and agents. You describe work as a graph, with connected steps and information that moves through the execution. It supplies orchestration infrastructure, while your code supplies the actual work, including model calls, retrieval, and validation. It can be used independently of LangChain, although the two are often used together. See the [official LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview).
 
-Here, orchestration means coordinating those steps. Suppose a reviewer rejects an answer. Your application needs to preserve the feedback, send the answer back for revision, and decide how many revisions to allow. Those are orchestration decisions.
-
 A graph gives that behavior an explicit structure. A step is called a node. A connection between steps is an edge. The information available during execution is the state. Together, these let you describe both a straightforward sequence and a process that branches or returns to earlier work. These are the core building blocks in the [Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api).
 
 You can build the same control flow with ordinary Python functions, loops, and conditionals. For a short sequence, that is often sufficient. LangGraph becomes useful when the relationships between steps deserve their own structure, especially when different outcomes lead to different actions.
-
-The practical benefits are easier to understand as engineering decisions.
-
-- **Explicit control flow.** You can identify which transitions are allowed and which conditions trigger them.
-- **Defined intermediate data.** You can decide what later steps need, instead of passing an increasingly large block of text between every call.
-- **Review and revision.** You can make rejection lead to another attempt, with an explicit stopping rule.
-- **Inspectable execution.** You can examine intermediate results to locate where a process went wrong.
 
 LangGraph also supports capabilities such as checkpointing, resumable execution, and human intervention. Those require deliberate configuration and workflow design. Merely creating a graph does not give an application durable memory or a human approval system. The [overview describes these capabilities](https://docs.langchain.com/oss/python/langgraph/overview) separately from the work your application performs.
 
@@ -33,9 +24,7 @@ Some situations make orchestration more valuable.
 
 In each case, an intermediate result affects what should happen next. That is a useful reason to consider LangGraph.
 
-![Agents Diagram](../agents-diagram.png)
-
-Before building an example, it helps to distinguish a workflow from an agent. A workflow follows routes defined by the developer. An agent uses a model to make some decisions about its actions. A system can combine both. You might let a model choose a specialist, while requiring an ordinary Python condition to enforce a retry limit. LangGraph supports both styles, as explained in its [workflows and agents guide](https://docs.langchain.com/oss/python/langgraph/workflows-agents).
+Before building an example, it helps to distinguish a workflow from an agent. A workflow follows routes defined by the developer. An agent uses a model to make some decisions about its actions. A system can combine both. You might let a model choose a specialist, while requiring an ordinary Python condition to enforce a retry limit. LangGraph supports both styles.
 
 Now consider an educational medical assistant receiving this question.
 
@@ -44,6 +33,8 @@ Now consider an educational medical assistant receiving this question.
 The question has two parts. Explaining a term requires terminology information. Answering whether it appears in the person's record requires patient information. These are different sources of evidence. Finding the word asthma in a terminology database does not establish that the person has asthma.
 
 For learning purposes, imagine two small JSON files. One contains fictional patient profiles and known conditions. The other contains a few synthetic terminology definitions that mimic a tiny part of a UMLS lookup. These are teaching records, not real patient data or an official UMLS dataset.
+
+![Agents Diagram](../agents-diagram.png)
 
 We can divide the work into four roles.
 
@@ -56,12 +47,13 @@ We can divide the work into four roles.
 
 These roles are an architectural choice. LangGraph does not require a supervisor or a critic. This arrangement is useful for learning because it separates coordination, evidence gathering, and review.
 
-Start with the information these roles need to share. The supervisor needs to know which workers have finished. The critic needs the draft and its supporting evidence. A revision needs the previous draft and the latest feedback.
+Start with the information these roles need to share. The supervisor needs to know which workers have finished. The critic needs the draft, the retrieved evidence, and the model context. A revision needs the previous draft and the latest feedback.
 
 In Python, we can describe that shared state with a `TypedDict`. This excerpt focuses on the fields needed to understand the example.
 
 ```python
-from typing import TypedDict
+from operator import add
+from typing import Annotated, TypedDict
 
 
 class State(TypedDict, total=False):
@@ -75,9 +67,10 @@ class State(TypedDict, total=False):
     draft: str
     drafts: int
     review: dict
+    trace: Annotated[list[str], add]
 ```
 
-At the beginning, only the user ID, question, and initial draft count need values. After the patient worker finishes, `patient` and `patient_summary` become available. After drafting, `draft` contains the candidate answer. The shape of the state tells us what information exists at each stage.
+At the beginning, the user ID, question, an empty `trace`, and a draft count of zero are enough. After the patient worker finishes, `patient` and `patient_summary` become available. After the terminology worker finishes, `terminology` and `medical_context` become available. After drafting, `draft` contains the candidate answer. The shape of the state tells us what information exists at each stage.
 
 Notice the distinction between raw evidence and a summary. A summary is another model's interpretation. Preserving the original tool result gives the supervisor and critic something to check that interpretation against. If a summary accidentally adds a condition, the raw record makes the discrepancy visible.
 
@@ -92,9 +85,9 @@ return {
 }
 ```
 
-LangGraph applies the returned fields to the state. By default, a new value replaces the previous value for that field. You can configure a reducer when values should be combined instead, such as appending execution events to a trace. See the [state and reducer documentation](https://docs.langchain.com/oss/python/langgraph/graph-api).
+LangGraph applies the returned fields to the state. By default, a new value replaces the previous value for that field. `trace` is the exception here: its reducer appends each event instead of replacing the list. See the [state and reducer documentation](https://docs.langchain.com/oss/python/langgraph/graph-api).
 
-A node does not have to call a language model. It could read a file, validate an identifier, or perform a calculation. Registering a function as a node simply makes it a step in the graph. In our medical example, the workers use tools for retrieval and a model for summarization.
+A node does not have to call a language model. It could read a file, validate an identifier, or perform a calculation. Registering a function as a node simply makes it a step in the graph. In our medical example, the patient worker summarizes retrieved facts. The medical knowledge worker writes general medical context, including when the terminology lookup has no matches.
 
 This is where tools fit into the picture. The patient worker has `get_patient(user_id)`. The terminology worker has `search_umls(query)`. A tool performs an operation and returns information. The worker uses that information to carry out its assigned responsibility.
 
@@ -131,9 +124,9 @@ For the question about asthma, a possible execution is straightforward.
 3. The supervisor dispatches the terminology worker.
 4. The terminology worker retrieves a matching definition and uses MedGemma to explain it and add general medical context.
 5. The supervisor combines both results into an answer.
-6. The critic checks that answer against the evidence.
+6. The critic checks that answer against the retrieved evidence and the model context.
 
-The supervisor could choose the terminology worker first. Both orders still satisfy the same requirement, both evidence sources must be consulted before drafting.
+The supervisor could choose the terminology worker first. Both orders still satisfy the same requirement. Drafting waits until `patient_summary` and `medical_context` exist, even when the terminology list is empty.
 
 These workers run sequentially in the teaching example. They could run concurrently because neither needs the other's result, but the graph would then need to wait for both before drafting. Concurrency is a separate design choice. It is not what makes a system an agent workflow.
 
@@ -148,7 +141,7 @@ A structured review makes the next action clear.
 }
 ```
 
-This JSON is an illustrative review, not a recorded model response. The useful part is its contract. The supervisor receives both the rejected draft and a specific correction. It can revise without retrieving the same unchanged records again.
+This JSON is an illustrative review, not a recorded model response. The useful part is its contract. Feedback is limited to 240 characters. If a review hits the output limit, it is retried once with the same draft and evidence. A second truncation is an error, never an approval. The supervisor receives both the rejected draft and a specific correction. It can revise without retrieving the same unchanged records again.
 
 A review loop also needs a limit. Two models can disagree indefinitely, and another attempt does not guarantee a better answer. For this example, allow one initial draft and one revision.
 
@@ -170,9 +163,9 @@ Both approval and an exhausted attempt limit end execution. They should produce 
 
 Four roles do not require four distinct models. In this version, the supervisor and patient worker use the main model. The medical knowledge worker and critic use MedGemma in separate calls. Medical context is stored separately from tool evidence and is included in both drafting and review. Model choice and graph structure are separate decisions.
 
-For symptom-only questions, a condition-name lookup can return no matches. MedGemma may still supply general medical information, cautious possible causes, follow-up questions, and relevant warning signs. Empty retrieval stays empty. The supervisor must distinguish recorded history from model suggestions and must not present possibilities as a confirmed diagnosis. Review allows this general information while checking for invented patient facts and unsupported certainty. These are prompt instructions, not a deterministic medical validation system.
+For symptom-only questions, a condition-name lookup can return no matches. MedGemma may still supply general medical information, cautious possible causes, follow-up questions, and relevant warning signs. Empty retrieval stays empty. The supervisor must distinguish recorded history from model suggestions, must not treat a recorded condition as the explanation for new symptoms, and must not present possibilities as a confirmed diagnosis. Review allows this general information while checking for invented patient facts and unsupported certainty. These are prompt instructions, not a deterministic medical validation system.
 
-Using a second model does not prove correctness or guarantee independent judgment. In this medical example, critic approval is an automated review result, not clinical validation. Its engineering value comes from making checks explicit and connecting a failed check to a defined response.
+Those MedGemma calls are separate, but they use the same model, so the critic is reviewing context that model just generated. That does not prove correctness or provide clinical validation. Critic approval is an automated review result. Its engineering value comes from making checks explicit and connecting a failed check to a defined response.
 
 We can now connect the pieces. The following excerpt assumes the state definition and four node functions have already been defined. It shows the orchestration structure, not a complete standalone application.
 
@@ -207,6 +200,7 @@ result = await graph.ainvoke({
     "user_id": "demo-001",
     "question": "What does asthma mean, and is it in my known conditions?",
     "drafts": 0,
+    "trace": [],
 })
 ```
 
