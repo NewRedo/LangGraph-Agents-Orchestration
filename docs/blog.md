@@ -34,16 +34,18 @@ The question has two parts. Explaining a term requires terminology information. 
 
 For learning purposes, imagine two small JSON files. One contains fictional patient profiles and known conditions. The other contains a few synthetic terminology definitions that mimic a tiny part of a UMLS lookup. These are teaching records, not real patient data or an official UMLS dataset.
 
-![Agents Diagram](../agents-diagram.png)
+![Agents Diagram](https://lh3.googleusercontent.com/d/1Xsknt1nhLOtptI2mH_432bbGbkLc0A_e)
 
 We can divide the work into four roles.
 
-| Role | Responsibility | Result |
-| --- | --- | --- |
-| Supervisor | Coordinate retrieval, combine findings, and revise the answer | A routing decision or a draft |
-| Patient worker | Retrieve and summarize the fictional patient record | Recorded patient evidence |
+
+| Role                                            | Responsibility                                                                 | Result                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Supervisor                                      | Coordinate retrieval, combine findings, and revise the answer                  | A routing decision or a draft                                         |
+| Patient worker                                  | Retrieve and summarize the fictional patient record                            | Recorded patient evidence                                             |
 | Medical knowledge worker (`terminology_worker`) | Retrieve matching terminology and use MedGemma for general medical information | Retrieved definitions plus separately labeled model-generated context |
-| Critic | Compare the draft with the question, retrieved evidence, and model context | Approval or actionable feedback |
+| Critic                                          | Compare the draft with the question, retrieved evidence, and model context     | Approval or actionable feedback                                       |
+
 
 These roles are an architectural choice. LangGraph does not require a supervisor or a critic. This arrangement is useful for learning because it separates coordination, evidence gathering, and review.
 
