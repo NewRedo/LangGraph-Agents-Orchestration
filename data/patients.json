@@ -1,0 +1,16 @@
+{
+  "demo-001": {
+    "name": "Alex Demo",
+    "age": 38,
+    "known_conditions": ["asthma"],
+    "allergies": ["penicillin"],
+    "note": "Fictional teaching record. No current symptoms recorded."
+  },
+  "demo-002": {
+    "name": "Sam Example",
+    "age": 52,
+    "known_conditions": ["hypertension"],
+    "allergies": [],
+    "note": "Fictional teaching record. An empty list means no entries in this fixture."
+  }
+}

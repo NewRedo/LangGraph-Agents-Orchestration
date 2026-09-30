@@ -1,0 +1,102 @@
+[
+  {
+    "id": "DEMO-001",
+    "name": "Asthma",
+    "aliases": ["asthma"],
+    "definition": "A chronic condition involving inflammation and narrowing of the airways.",
+    "symptoms": ["wheezing", "shortness of breath", "chest tightness", "cough that may worsen at night or with triggers"],
+    "effects": "Can limit activity. A severe attack can sharply reduce airflow and needs urgent care.",
+    "treatments": ["avoid known triggers", "inhaled corticosteroid controllers", "short-acting bronchodilators for symptoms", "urgent care for a severe attack"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-002",
+    "name": "Hypertension",
+    "aliases": ["hypertension", "high blood pressure"],
+    "definition": "A condition in which blood pressure is persistently elevated.",
+    "symptoms": ["often none", "headache", "dizziness", "nosebleeds when pressure is very high"],
+    "effects": "Raises long-term risk of heart disease, stroke, kidney disease, and vision damage.",
+    "treatments": ["less salt", "regular activity and weight management", "blood-pressure medicines chosen by a clinician"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-003",
+    "name": "Allergy",
+    "aliases": ["allergy", "allergies", "allergic"],
+    "definition": "An immune response to a substance that is usually harmless to most people.",
+    "symptoms": ["sneezing", "itchy or watery eyes", "runny nose", "rash or hives", "swelling or trouble breathing in a severe reaction"],
+    "effects": "Ranges from mild discomfort to anaphylaxis, which is a medical emergency.",
+    "treatments": ["avoid the trigger", "antihistamines", "nasal corticosteroid sprays", "epinephrine for anaphylaxis"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-004",
+    "name": "Type 2 diabetes",
+    "aliases": ["type 2 diabetes", "diabetes"],
+    "definition": "A chronic condition in which the body does not use insulin well and blood glucose stays too high.",
+    "symptoms": ["increased thirst", "frequent urination", "fatigue", "blurred vision", "slow-healing cuts"],
+    "effects": "Over time can damage eyes, kidneys, nerves, and blood vessels, and raise the risk of heart disease.",
+    "treatments": ["meal planning and activity", "blood-glucose monitoring", "metformin or other glucose-lowering medicines", "insulin when a clinician prescribes it"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-005",
+    "name": "Influenza",
+    "aliases": ["influenza", "flu"],
+    "definition": "A contagious respiratory infection caused by influenza viruses.",
+    "symptoms": ["sudden fever", "cough", "sore throat", "muscle aches", "fatigue"],
+    "effects": "Usually improves in about a week. Can lead to pneumonia and be severe in older adults, young children, and people with other illnesses.",
+    "treatments": ["rest and fluids", "fever and pain relief", "antiviral medicine when a clinician starts it early", "annual vaccination for prevention"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-006",
+    "name": "Pneumonia",
+    "aliases": ["pneumonia"],
+    "definition": "An infection that inflames the air sacs of one or both lungs, which may fill with fluid.",
+    "symptoms": ["cough", "fever", "shortness of breath", "chest pain", "fatigue"],
+    "effects": "Can lower blood oxygen. Severe infection can spread and cause sepsis.",
+    "treatments": ["antibiotics when the cause is bacterial", "antivirals or supportive care when the cause is viral", "oxygen and hospital care when breathing is impaired"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-007",
+    "name": "Chronic obstructive pulmonary disease",
+    "aliases": ["chronic obstructive pulmonary disease", "copd"],
+    "definition": "A long-term lung disease, often from smoking, that limits airflow and makes breathing harder.",
+    "symptoms": ["chronic cough", "mucus", "shortness of breath that worsens over time", "wheeze"],
+    "effects": "Limits daily activity. Flare-ups can cause severe breathlessness and need emergency care.",
+    "treatments": ["stop smoking", "inhaled bronchodilators", "pulmonary rehabilitation", "oxygen when a clinician prescribes it"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-008",
+    "name": "Osteoarthritis",
+    "aliases": ["osteoarthritis", "arthritis"],
+    "definition": "A joint disease in which protective cartilage wears down, most often in the knees, hips, hands, or spine.",
+    "symptoms": ["joint pain", "stiffness after rest", "swelling", "reduced range of motion"],
+    "effects": "Pain and stiffness can limit walking, grip, and other daily tasks. This fixture entry is osteoarthritis, the most common form of arthritis.",
+    "treatments": ["activity and strength exercise", "weight management", "pain relief such as acetaminophen or NSAIDs when appropriate", "joint replacement in advanced cases"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-009",
+    "name": "Depression",
+    "aliases": ["depression", "major depressive disorder"],
+    "definition": "A mood disorder with a persistent low mood or loss of interest that interferes with daily life.",
+    "symptoms": ["low mood most of the day", "loss of interest", "sleep or appetite changes", "fatigue", "trouble concentrating"],
+    "effects": "Impairs work, relationships, and self-care. Severe depression can include thoughts of self-harm and needs urgent help.",
+    "treatments": ["psychotherapy", "antidepressant medicine when prescribed", "urgent help if there is risk of self-harm"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  },
+  {
+    "id": "DEMO-010",
+    "name": "Coronary artery disease",
+    "aliases": ["coronary artery disease", "coronary heart disease"],
+    "definition": "Narrowing of the arteries that supply the heart, usually from plaque, which reduces blood flow to heart muscle.",
+    "symptoms": ["chest pressure or pain with exertion", "shortness of breath", "fatigue", "sometimes no symptoms until a serious event"],
+    "effects": "Can cause angina, heart attack, heart failure, and sudden cardiac arrest.",
+    "treatments": ["stop smoking", "statins and other medicines a clinician prescribes", "blood-pressure and glucose control", "procedures such as stenting or bypass when indicated"],
+    "source": "Synthetic terminology fixture. Not an official UMLS record."
+  }
+]

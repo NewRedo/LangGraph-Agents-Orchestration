@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live orchestration</title>
+<style>
+  :root { color-scheme: dark light; font: 15px system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: light-dark(#f5f7fa, #10151e); color: light-dark(#182235, #e4ebf5); }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; min-height: 100vh; }
+  iframe { width: 100%; height: 100vh; border: 0; }
+  .diagram { position: relative; min-width: 0; }
+  #current { margin: 0 0 16px; padding: 10px 16px; border: 2px solid #71dfce; border-radius: 10px;
+    background: light-dark(#fff, #192230); font-weight: 700; }
+  aside { padding: 24px; border-left: 1px solid #65738b55; height: 100vh; overflow: auto; }
+  h1 { font-size: 22px; margin-top: 0; }
+  p { line-height: 1.5; }
+  label { display: block; margin: 16px 0 6px; }
+  input, textarea, button { font: inherit; border: 1px solid #65738b88; border-radius: 8px; padding: 10px; }
+  input, textarea { width: 100%; background: light-dark(white, #192230); color: inherit; }
+  textarea { resize: vertical; min-height: 100px; }
+  button { cursor: pointer; background: #71dfce; color: #102524; margin: 12px 4px 0 0; }
+  button:disabled { opacity: .5; cursor: default; }
+  #stop { background: transparent; color: inherit; }
+  #status { font-weight: 600; }
+  ol { padding-left: 22px; }
+  li { padding: 7px 0; line-height: 1.4; overflow-wrap: anywhere; }
+  small { opacity: .7; }
+  pre { font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #answer { white-space: pre-wrap; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    iframe { height: 60vh; }
+    aside { height: auto; border-left: 0; border-top: 1px solid #65738b55; }
+  }
+</style>
+<main>
+  <section class="diagram" aria-label="Live workflow">
+    <iframe src="/diagram?embed=1" title="Medical agent workflow diagram"></iframe>
+  </section>
+  <aside>
+    <p id="current" role="status">Ready · Run a request to follow its active step</p>
+    <h1>Live orchestration</h1>
+    <p>Follow a request through the workers and critic. Fictional teaching data.</p>
+    <form id="form">
+      <label for="user">User ID</label>
+      <input id="user" value="demo-001" required maxlength="80" pattern=".*\S.*">
+      <label for="question">Question</label>
+      <textarea id="question" required maxlength="2000">What does asthma mean, and is it in my known conditions?</textarea>
+      <button id="run">Run request</button>
+      <button id="stop" type="button" disabled>Stop</button>
+    </form>
+    <p id="status" role="status">Ready</p>
+    <ol id="events" aria-label="Execution events"></ol>
+    <p id="answer"></p>
+    <details><summary>JSON events</summary><pre id="json"></pre></details>
+  </aside>
+</main>
+<script>
+  const form = document.querySelector('#form');
+  const run = document.querySelector('#run');
+  const stop = document.querySelector('#stop');
+  const status = document.querySelector('#status');
+  const events = document.querySelector('#events');
+  const answer = document.querySelector('#answer');
+  const raw = document.querySelector('#json');
+  const frame = document.querySelector('iframe');
+  const current = document.querySelector('#current');
+  const names = {supervisor: 'Supervisor', patient_worker: 'Patient worker',
+                 terminology_worker: 'Medical knowledge worker'};
+  let activeNode = null;
+  let controller;
+  stop.addEventListener('click', () => controller?.abort());
+
+  function highlight(node) {
+    activeNode = node;
+    const doc = frame.contentDocument;
+    if (!doc) return;
+    doc.querySelectorAll('[data-live-overlay]').forEach(el => el.remove());
+    doc.querySelectorAll('[data-live-active]').forEach(el => el.removeAttribute('data-live-active'));
+    // The authored diagram uses terms_worker for the graph's terminology_worker.
+    const id = node === 'terminology_worker' ? 'terms_worker' : node;
+    const target = id && doc.querySelector(`[data-node-id="${id}"]`);
+    if (!target) return;
+    const box = target.querySelector(':scope > rect.c-mask');
+    if (!box) return;
+    target.setAttribute('data-live-active', 'true');
+    const x = Number(box.getAttribute('x')), y = Number(box.getAttribute('y'));
+    const ring = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    for (const [key, value] of Object.entries({x: x - 5, y: y - 5,
+      width: Number(box.getAttribute('width')) + 10,
+      height: Number(box.getAttribute('height')) + 10, rx: 10,
+      fill: 'none', stroke: '#e9aa20', 'stroke-width': 3,
+      'vector-effect': 'non-scaling-stroke', 'pointer-events': 'none',
+      'data-live-overlay': 'true', 'aria-hidden': 'true'})) ring.setAttribute(key, value);
+    const label = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+    for (const [key, value] of Object.entries({x, y: y - 12, fill: '#e9aa20',
+      'font-size': 10, 'font-weight': 700, 'pointer-events': 'none',
+      'data-live-overlay': 'true', 'aria-hidden': 'true'})) label.setAttribute(key, value);
+    label.textContent = 'ACTIVE';
+    target.append(ring, label);
+  }
+  frame.addEventListener('load', () => {
+    const doc = frame.contentDocument;
+    // Apply current role wording in this live view; keep the validated artifact intact.
+    const wording = {'Terminology worker': 'Medical knowledge',
+      'Explain matched concepts': 'JSON + medical context',
+      '02 / Specialist workers. Shared model': '02 / Specialist workers. Two models',
+      'Concept evidence': 'Medical context'};
+    doc.querySelectorAll('svg text').forEach(text => {
+      if (wording[text.textContent]) text.textContent = wording[text.textContent];
+    });
+    const worker = doc.querySelector('[data-node-id="terms_worker"]');
+    if (worker) {
+      worker.dataset.nodeLabel = 'Medical knowledge';
+      worker.dataset.nodeSublabel = 'JSON + medical context';
+      worker.setAttribute('aria-label', 'Medical knowledge worker. JSON retrieval and medical model context.');
+      worker.querySelector('title').textContent = 'Medical knowledge. JSON + medical model context.';
+    }
+    highlight(activeNode);
+  });
+
+  function setCurrent(text, node = null) {
+    current.textContent = text;
+    highlight(node);
+  }
+
+  function show(event) {
+    raw.textContent += JSON.stringify(event) + '\n';
+    const item = document.createElement('li');
+    const seconds = (event.elapsed_ms / 1000).toFixed(1);
+    if (event.type === 'progress') {
+      status.textContent = `${event.node}: ${event.status}`;
+      const name = names[event.node] || 'Critic';
+      if (event.status === 'running') setCurrent(`Active · ${name}`, event.node);
+      else setCurrent(`${name} · ${event.status}`);
+      item.textContent = `${seconds}s · ${event.message || status.textContent}`;
+      if (event.feedback) item.textContent += ` — ${event.feedback}`;
+    } else if (event.type === 'result') {
+      status.textContent = event.status === 'approved' ? 'Approved' : 'Needs review';
+      setCurrent(`Finished · ${status.textContent}`);
+      item.textContent = `${seconds}s · ${status.textContent} (${event.drafts} draft(s))`;
+      answer.textContent = event.answer || `No approved answer. ${event.feedback}`;
+    } else if (event.type === 'error') {
+      status.textContent = 'Failed';
+      setCurrent('Failed · No active step');
+      item.textContent = `${seconds}s · ${event.message}`;
+    } else {
+      status.textContent = 'Starting…';
+      setCurrent('Starting request…', 'ask');
+      item.textContent = `${seconds}s · Request started`;
+    }
+    events.append(item);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!document.querySelector('#question').value.trim()) {
+      status.textContent = 'Enter a question.';
+      return;
+    }
+    controller = new AbortController();
+    run.disabled = true;
+    stop.disabled = false;
+    events.replaceChildren();
+    raw.textContent = answer.textContent = '';
+    status.textContent = 'Connecting…';
+    setCurrent('Connecting…');
+    let terminal = false;
+    function consume(line) {
+      if (!line.trim()) return;
+      const event = JSON.parse(line);
+      show(event);
+      if (event.type === 'result' || event.type === 'error') terminal = true;
+    }
+    try {
+      const response = await fetch('/ask/stream', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({user_id: document.querySelector('#user').value,
+                              question: document.querySelector('#question').value}),
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`Request failed (HTTP ${response.status}).`);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = '';
+      while (true) {
+        const {value, done} = await reader.read();
+        pending += decoder.decode(value, {stream: !done});
+        const lines = pending.split('\n');
+        pending = lines.pop();
+        for (const line of lines) consume(line);
+        if (done) { consume(pending); break; }
+      }
+      if (!terminal) throw new Error('Connection closed before the run finished.');
+    } catch (error) {
+      status.textContent = error.name === 'AbortError' ? 'Stopped' : error.message;
+      setCurrent(error.name === 'AbortError' ? 'Stopped · No active step' : 'Failed · No active step');
+    } finally {
+      run.disabled = false;
+      stop.disabled = true;
+      controller = null;
+    }
+  });
+</script>
+</html>

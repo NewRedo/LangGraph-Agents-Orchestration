@@ -1,0 +1,185 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Medical AI. Two workers, one review loop",
+    "locale": "en",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    {
+      "id": "orchestration",
+      "label": "FastAPI and LangGraph"
+    },
+    {
+      "id": "workers",
+      "label": "Specialist workers. Shared model"
+    },
+    {
+      "id": "evidence",
+      "label": "Read only MCP tools. Synthetic JSON"
+    }
+  ],
+  "mainPath": [
+    "ask",
+    "supervisor",
+    "critic",
+    "response"
+  ],
+  "nodes": [
+    {
+      "id": "ask",
+      "lane": "orchestration",
+      "col": 0,
+      "type": "frontend",
+      "label": "POST /ask",
+      "sublabel": "user_id + question"
+    },
+    {
+      "id": "supervisor",
+      "lane": "orchestration",
+      "col": 2,
+      "type": "backend",
+      "label": "Supervisor",
+      "sublabel": "Route, draft, revise",
+      "tag": "MAIN_MODEL"
+    },
+    {
+      "id": "critic",
+      "lane": "orchestration",
+      "col": 4,
+      "type": "security",
+      "label": "Critic",
+      "sublabel": "Check draft + evidence",
+      "tag": "CRITIC_MODEL"
+    },
+    {
+      "id": "response",
+      "lane": "orchestration",
+      "col": 5,
+      "type": "frontend",
+      "label": "Response",
+      "sublabel": "approved / needs_review"
+    },
+    {
+      "id": "patient_worker",
+      "lane": "workers",
+      "col": 1,
+      "type": "backend",
+      "label": "Patient worker",
+      "sublabel": "Summarize known context"
+    },
+    {
+      "id": "terms_worker",
+      "lane": "workers",
+      "col": 3,
+      "type": "backend",
+      "label": "Terminology worker",
+      "sublabel": "Explain matched concepts",
+      "width": 176
+    },
+    {
+      "id": "patient_tool",
+      "lane": "evidence",
+      "col": 1,
+      "type": "database",
+      "label": "get_patient",
+      "sublabel": "patients.json",
+      "tag": "MCP over stdio"
+    },
+    {
+      "id": "terms_tool",
+      "lane": "evidence",
+      "col": 3,
+      "type": "database",
+      "label": "search_umls",
+      "sublabel": "umls.json",
+      "tag": "MCP over stdio"
+    }
+  ],
+  "edges": [
+    {
+      "from": "ask",
+      "to": "supervisor",
+      "label": "Initialize state"
+    },
+    {
+      "from": "supervisor",
+      "to": "patient_worker",
+      "label": "Assign",
+      "role": "branch",
+      "toSide": "top"
+    },
+    {
+      "from": "patient_worker",
+      "to": "supervisor",
+      "label": "Patient evidence",
+      "role": "return"
+    },
+    {
+      "from": "supervisor",
+      "to": "terms_worker",
+      "label": "Assign",
+      "role": "branch"
+    },
+    {
+      "from": "terms_worker",
+      "to": "supervisor",
+      "label": "Concept evidence",
+      "role": "return"
+    },
+    {
+      "from": "patient_worker",
+      "to": "patient_tool",
+      "label": "Read profile"
+    },
+    {
+      "from": "terms_worker",
+      "to": "terms_tool",
+      "label": "Search terms"
+    },
+    {
+      "from": "supervisor",
+      "to": "critic",
+      "label": "Draft after both workers"
+    },
+    {
+      "from": "critic",
+      "to": "supervisor",
+      "label": "One revision",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "from": "critic",
+      "to": "response",
+      "label": "Pass or limit"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Four roles, two models",
+      "items": [
+        "Supervisor chooses which worker runs first. Each runs once.",
+        "Both workers and the supervisor use MAIN_MODEL."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Bounded review",
+      "items": [
+        "Critic uses CRITIC_MODEL. A rejection returns feedback.",
+        "Two rejected drafts end as needs_review. No answer released."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Teaching data",
+      "items": [
+        "JSON mimics patient records and terminology lookup.",
+        "Fictional records. Educational output, no diagnosis."
+      ]
+    }
+  ]
+}
