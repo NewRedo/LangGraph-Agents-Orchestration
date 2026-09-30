@@ -1,20 +1,20 @@
 # Learning LangGraph. How to coordinate AI agents, tools, and decisions
 
-Calling a language model is often the easiest part of building an AI application. The harder part begins when answering one question requires several actions. You may need to retrieve information, ask a specialist to interpret it, check the answer, and try again if something is missing.
+Calling a language model is often the easy part. The harder part is one question that needs several actions: retrieve information, ask a specialist to interpret it, check the answer, and try again if something is missing.
 
-At that point, you are designing a process. What happens first. What information survives between steps. Who decides what happens next. What makes the process stop.
+That is a process. What happens first, what survives between steps, who decides next, and what makes it stop.
 
-LangGraph helps you express and run that process. This article introduces the ideas behind it, explains when they are useful, and develops a medical information example to make them concrete. Basic familiarity with Python functions and dictionaries is enough to follow along.
+LangGraph lets you express and run that process. This article covers the ideas, when they help, and a medical example. Python functions and dictionaries are enough to follow along.
 
-LangGraph is a library for building stateful workflows and agents. You describe work as a graph, with connected steps and information that moves through the execution. It supplies orchestration infrastructure, while your code supplies the actual work, including model calls, retrieval, and validation. It can be used independently of LangChain, although the two are often used together. See the [official LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview).
+You describe the work as a graph. LangGraph runs it. Your code does the work: model calls, retrieval, and validation. It does not require LangChain, though the two are often used together. See the [official LangGraph overview](https://docs.langchain.com/oss/python/langgraph/overview).
 
-A graph gives that behavior an explicit structure. A step is called a node. A connection between steps is an edge. The information available during execution is the state. Together, these let you describe both a straightforward sequence and a process that branches or returns to earlier work. These are the core building blocks in the [Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api).
+A step is a node, a connection is an edge, and the information carried through execution is the state. With those you can describe a straight sequence or a process that branches or returns to earlier work. They are the core of the [Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api).
 
-You can build the same control flow with ordinary Python functions, loops, and conditionals. For a short sequence, that is often sufficient. LangGraph becomes useful when the relationships between steps deserve their own structure, especially when different outcomes lead to different actions.
+Ordinary functions, loops, and conditionals can do the same thing, and a short sequence often should stay that way. LangGraph helps when the links between steps need their own structure, especially when an outcome changes what happens next.
 
-LangGraph also supports capabilities such as checkpointing, resumable execution, and human intervention. Those require deliberate configuration and workflow design. Merely creating a graph does not give an application durable memory or a human approval system. The [overview describes these capabilities](https://docs.langchain.com/oss/python/langgraph/overview) separately from the work your application performs.
+It can also checkpoint, resume, and hand work to a person, but only if you configure that. Creating a graph does not add durable memory or human approval. The [overview describes these capabilities](https://docs.langchain.com/oss/python/langgraph/overview) separately from the work your code performs.
 
-There is a tradeoff. A graph introduces concepts and structure that a single model call may not need. Start with the process you actually require. If a question can be answered reliably by one retrieval step and one model call, several agents may add cost and latency without solving a useful problem.
+Use a graph for the process you actually need. One retrieval and one model call do not need several agents. Extra agents add cost and latency.
 
 Some situations make orchestration more valuable.
 
