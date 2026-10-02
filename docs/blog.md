@@ -51,6 +51,8 @@ These roles are an architectural choice. LangGraph does not require a supervisor
 
 Start with the information these roles need to share. The supervisor needs to know which workers have finished. The critic needs the draft, the retrieved evidence, and the model context. A revision needs the previous draft and the latest feedback.
 
+> You can use the example in the code here LangGraph [Python Example Project](https://github.com/NewRedo/LangGraph-Agents-Orchestration) to get a better understanding of the rest of this blog
+
 In Python, we can describe that shared state with a `TypedDict`. This excerpt focuses on the fields needed to understand the example.
 
 ```python
@@ -215,5 +217,3 @@ Missing evidence deserves its own test. An unknown patient record should remain 
 When designing your own graph, write down the responsibilities before choosing agent names. Identify what each step receives, what it produces, who can act on that result, and what ends execution. Then decide which decisions need a model and which can be expressed directly in Python.
 
 In the medical example, those questions lead to two sources of evidence, a coordinator that combines them, and a reviewer that can request one revision. In another domain, the same ideas might coordinate a policy check, a test runner, or a human approval step. LangGraph gives those decisions an executable structure. The quality of the process still depends on the responsibilities, evidence, and limits you design.
-
-For a concrete companion to these concepts, explore the [medical workflow diagram](orchestration.html) and the [small Python example](../README.md). Use them to connect each concept to code after the responsibilities and handoffs make sense.
